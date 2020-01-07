@@ -2,6 +2,7 @@ import logging
 
 logging.basicConfig(
     format='[%(name)s][%(asctime)s][%(levelname)s]: %(message)s',
+    level=logging.DEBUG
 )
 
 
