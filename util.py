@@ -1,12 +1,12 @@
 import os
 
 
-def get_list_diff(a: iter, b: iter) -> (list, list, list):
+def get_iter_diff(a: iter, b: iter) -> (list, list, list):
     """
-    get list diff
-    :param a: list a
-    :param b: list b
-    :return: a - b, a ^ b, b - a
+    get liter diff
+    :param a: iterable a
+    :param b: iterable b
+    :return: a - b (removed), a ^ b (kept), b - a (added)
     """
     sa = set(a)
     sb = set(b)
