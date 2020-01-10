@@ -2,7 +2,7 @@ import logger
 import os
 import json
 import xlrd
-from util import get_iter_diff
+from util import get_iter_diff, lis
 
 EXCEL_EXTENSIONS = ['xls', 'xlsx']
 LOGGER = logger.get_logger('EXCEL_DIFFER')
@@ -120,7 +120,7 @@ class ExcelDiffer:
         sheet_diff = {
             "added_cols": [],
             "removed_cols": [],
-            "modified_cols": [],
+            "modified_data": [],
         }
         modified = True
         # diff header
@@ -140,7 +140,7 @@ class ExcelDiffer:
                 header_cols2[h2] = list()
             header_cols2[h2].append(i)
         removed_cols, kept_cols, added_cols = get_iter_diff(header_cols1.keys(), header_cols2.keys())
-        # please do not change col name frequently!
+        # please do not change col name or switch data frequently!
         if len(removed_cols) > 0:
             sheet_diff["removed_cols"] = [{"name": h, "indices": header_cols1[h]} for h in removed_cols]
             modified = True
@@ -158,10 +158,118 @@ class ExcelDiffer:
                 sheet_diff["added_cols"].append({"name": h, "indices": cols2[l1 - l2:]})
                 header_cols2[h] = cols2[:l1]
                 modified = True
-        print(json.dumps(header_cols1, ensure_ascii=False, indent=2))
-        print(json.dumps(header_cols2, ensure_ascii=False, indent=2))
-        # TODO: map cols, diff data that both contains
+        # map cols
+        cols1_header = dict()
+        cols1_cols2 = dict()
+        for header in header_cols1:
+            col1_indices = header_cols1[header]
+            col2_indices = header_cols2[header]
+            while len(col1_indices) > 0 and len(col2_indices) > 0:
+                col_idx1 = col1_indices.pop()
+                col_idx2 = col2_indices.pop()
+                cols1_header[col_idx1] = header
+                cols1_cols2[col_idx1] = col_idx2
+        indices1 = list(cols1_header.keys())
+        indices1.sort()
+        d1, d2 = [], []
+        if self._start_row > s1.nrows:
+            LOGGER.warn("Sheet %s: start row %d is larger than num rows %d!" %
+                        (s1.name, self._start_row, s1.nrows))
+        else:
+            for i in range(self._start_row, s1.nrows):
+                d1.append([str(s1.cell_value(i, c)) for c in indices1])
+        if self._start_row > s2.nrows:
+            LOGGER.warn("Sheet %s: start row %d is larger then num rows %d!" %
+                        (s2.name, self._start_row, s2.nrows))
+        else:
+            for i in range(self._start_row, s2.nrows):
+                d2.append([str(s2.cell_value(i, cols1_cols2[c])) for c in indices1])
+        data_diff = ExcelDiffer.diff_data(d1, d2)
+        if data_diff:
+            modified = True
+            sheet_diff["modified_data"].append(data_diff)
         return sheet_diff if modified else None
+
+
+    @staticmethod
+    def _diff_data(d1, d2):
+        """
+        real data diff, assuming that data must have diff
+        TODO: use lcs
+        :param d1:
+        :param d2:
+        :return:
+        """
+        diff = {
+            "modified_rows": [],
+            "added_rows": [],
+            "removed_rows": []
+        }
+        return diff
+
+    @staticmethod
+    def diff_data(d1, d2):
+        """
+        generate data diff
+        :param d1: data 1
+        :param d2: data 2
+        :return: data diff
+        """
+        data_diff = {
+            "modified_rows": [],
+            "added_rows": [],
+            "removed_rows": [],
+            "moved_rows": [],
+            "duplicated_src_rows": dict(),
+            "duplicated_dest_rows": dict()
+        }
+        # get rows both have, remove duplicates
+        row_hashes1, row_hashes2 = dict(), dict()
+        kept_rows = dict()
+        for i in range(len(d1)):
+            row_hash1 = '|||'.join(d1[i])
+            if row_hash1 in row_hashes1.keys():
+                data_diff["duplicated_src_rows"][i] = row_hashes1[row_hash1]
+            else:
+                row_hashes1[row_hash1] = i
+        for i in range(len(d2)):
+            row_hash2 = '|||'.join(d2[i])
+            if row_hash2 in row_hashes2.keys():
+                data_diff["duplicated_dest_rows"][i] = row_hashes2[row_hash2]
+            else:
+                row_hashes2[row_hash2] = i
+                if row_hash2 in row_hashes1.keys():
+                    kept_rows[row_hashes1[row_hash2]] = i
+        # get mapping of kept indices
+        kept_indices1 = list(kept_rows.keys())
+        if len(kept_indices1) == 0:
+            partial_data_diff = ExcelDiffer._diff_data(d1, d2)
+            data_diff["modified_rows"].extend(partial_data_diff["modified_rows"])
+            data_diff["removed_rows"].extend(partial_data_diff["removed_rows"])
+            data_diff["added_rows"].extend(partial_data_diff["added_rows"])
+            return data_diff
+        kept_indices1.sort()
+        kept_indices2 = [kept_rows[idx] for idx in kept_indices1]
+        # get LIS of kept indices 2
+        lis_indices2 = lis(kept_indices2)
+        if len(lis_indices2) == len(kept_indices2) and len(lis_indices2) == len(d2):
+            return None  # no change
+        lis_indices1 = list()
+        i, j, l, lisl = 0, 0, len(kept_indices1), len(lis_indices2)
+        # get moved rows
+        while i < l and j < len(lis_indices2):
+            if kept_indices2[i] == lis_indices2[j]:
+                lis_indices1.append(kept_indices1[i])
+                j += 1
+            else:
+                data_diff["moved_rows"].append((kept_indices1[i], kept_indices2[i]))
+            i += 1
+        # TODO: get data needed real diff
+        left_rows1 = list(set([_ for _ in range(len(d1))]).difference(kept_rows.keys()))
+        left_rows1.sort()
+        left_rows2 = list(set([_ for _ in range(len(d2))]).difference(kept_rows.values()))
+        left_rows2.sort()
+        return data_diff
 
     def get_diff_report(self, src_dir: str, dest_dir: str) -> (dict, str):
         """
