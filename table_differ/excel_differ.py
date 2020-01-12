@@ -6,6 +6,7 @@ from util import get_iter_diff, lis
 
 EXCEL_EXTENSIONS = ['xls', 'xlsx']
 LOGGER = logger.get_logger('EXCEL_DIFFER')
+ROW_MODIFY_THRESHOLD = 0.75
 
 
 class ExcelDiffer:
@@ -16,14 +17,12 @@ class ExcelDiffer:
     """
 
     def __init__(self,
-                 start_row: int = 2,
+                 start_row: int = 1,
                  start_col: int = 0,
-                 header_row: int = 0,
-                 header_desc_row: int = 1):
+                 header_row: int = 0):
         self._start_row = start_row
         self._start_col = start_col
         self._header_row = header_row
-        self._header_desc_row = header_desc_row
 
     @staticmethod
     def _get_excel_files(r, d, fs: set):
@@ -38,7 +37,7 @@ class ExcelDiffer:
             return
         f_list = os.listdir(d)
         for f in f_list:
-            if f.startswith("~$"):
+            if f.startswith('~$'):
                 continue
             p = os.path.join(d, f)
             if os.path.isfile(p):
@@ -78,12 +77,12 @@ class ExcelDiffer:
         :param f2: file 2
         :return: file diff report dict
         """
-        LOGGER.info("Get file diff --- src: %s, dest: %s" % (f1, f2))
+        LOGGER.info('Get file diff --- src: %s, dest: %s' % (f1, f2))
         modified = False
         file_diff = {
-            "added_sheets": [],
-            "removed_sheets": [],
-            "modified_sheets": [],
+            'added_sheets': [],
+            'removed_sheets': [],
+            'modified_sheets': [],
         }
         d1 = xlrd.open_workbook(f1)
         d2 = xlrd.open_workbook(f2)
@@ -91,22 +90,22 @@ class ExcelDiffer:
         sheets2 = d2.sheet_names()
         removed_sheets, kept_sheets, added_sheets = get_iter_diff(sheets1, sheets2)
         if len(removed_sheets) > 0:
-            file_diff["removed_sheets"] = removed_sheets
+            file_diff['removed_sheets'] = removed_sheets
             modified = True
         if len(added_sheets) > 0:
-            file_diff["added_sheets"] = added_sheets
+            file_diff['added_sheets'] = added_sheets
             modified = True
         for sheet_name in kept_sheets:
             sheet1 = d1.sheet_by_name(sheet_name)
             sheet2 = d2.sheet_by_name(sheet_name)
-            LOGGER.info("Get sheet %s diff --- src: %s, dest: %s" % (sheet_name, f1, f2))
+            LOGGER.info('Get sheet %s diff --- src: %s, dest: %s' % (sheet_name, f1, f2))
             try:
                 sheet_diff = self._diff_sheet(sheet1, sheet2)
                 if sheet_diff:
                     modified = True
-                    file_diff["modified_sheets"].append(sheet_diff)
+                    file_diff['modified_sheets'].append(sheet_diff)
             except Exception as e:
-                LOGGER.exception("Error while differing sheet %s of %s and %s! %s"
+                LOGGER.exception('Error while differing sheet %s of %s and %s! %s'
                                  % (sheet_name, f1, f2, e))
         return file_diff if modified else None
 
@@ -118,9 +117,9 @@ class ExcelDiffer:
         :return: sheet diff of s1 and s2
         """
         sheet_diff = {
-            "added_cols": [],
-            "removed_cols": [],
-            "modified_data": [],
+            'added_cols': [],
+            'removed_cols': [],
+            'modified_data': [],
         }
         modified = True
         # diff header
@@ -142,20 +141,20 @@ class ExcelDiffer:
         removed_cols, kept_cols, added_cols = get_iter_diff(header_cols1.keys(), header_cols2.keys())
         # please do not change col name or switch data frequently!
         if len(removed_cols) > 0:
-            sheet_diff["removed_cols"] = [{"name": h, "indices": header_cols1[h]} for h in removed_cols]
+            sheet_diff['removed_cols'] = [{'name': h, 'indices': header_cols1[h]} for h in removed_cols]
             modified = True
         if len(added_cols) > 0:
-            sheet_diff["added_cols"] = [{"name": h, "indices": header_cols2[h]} for h in added_cols]
+            sheet_diff['added_cols'] = [{'name': h, 'indices': header_cols2[h]} for h in added_cols]
             modified = True
         for h in kept_cols:
             cols1, cols2 = header_cols1[h], header_cols2[h]
             l1, l2 = len(cols1), len(cols2)
             if l1 > l2:
-                sheet_diff["removed_cols"].append({"name": h, "indices": cols1[l2 - l1:]})
+                sheet_diff['removed_cols'].append({'name': h, 'indices': cols1[l2 - l1:]})
                 header_cols1[h] = cols1[:l2]
                 modified = True
             elif l1 < l2:
-                sheet_diff["added_cols"].append({"name": h, "indices": cols2[l1 - l2:]})
+                sheet_diff['added_cols'].append({'name': h, 'indices': cols2[l1 - l2:]})
                 header_cols2[h] = cols2[:l1]
                 modified = True
         # map cols
@@ -173,13 +172,13 @@ class ExcelDiffer:
         indices1.sort()
         d1, d2 = [], []
         if self._start_row > s1.nrows:
-            LOGGER.warn("Sheet %s: start row %d is larger than num rows %d!" %
+            LOGGER.warn('Sheet %s: start row %d is larger than num rows %d!' %
                         (s1.name, self._start_row, s1.nrows))
         else:
             for i in range(self._start_row, s1.nrows):
                 d1.append([str(s1.cell_value(i, c)) for c in indices1])
         if self._start_row > s2.nrows:
-            LOGGER.warn("Sheet %s: start row %d is larger then num rows %d!" %
+            LOGGER.warn('Sheet %s: start row %d is larger then num rows %d!' %
                         (s2.name, self._start_row, s2.nrows))
         else:
             for i in range(self._start_row, s2.nrows):
@@ -187,24 +186,55 @@ class ExcelDiffer:
         data_diff = ExcelDiffer.diff_data(d1, d2)
         if data_diff:
             modified = True
-            sheet_diff["modified_data"].append(data_diff)
+            sheet_diff['modified_data'].append(data_diff)
         return sheet_diff if modified else None
 
 
     @staticmethod
-    def _diff_data(d1, d2):
+    def _diff_data(d1, d2, rows1, rows2):
         """
         real data diff, assuming that data must have diff
-        TODO: use lcs
         :param d1:
         :param d2:
         :return:
         """
         diff = {
-            "modified_rows": [],
-            "added_rows": [],
-            "removed_rows": []
+            'modified_cells': [],
+            'added_rows': [],
+            'removed_rows': []
         }
+        i1 = 0
+        while i1 < len(rows1):
+            to_row = -1
+            r1 = d1[i1]
+            i2 = 0
+            while i2 < len(rows2):
+                r2 = d2[i2]
+                col_l = min(len(r1), len(r2))  # col len should be same in fact
+                same_cnt, diffs = 0, []
+                for j in range(col_l):
+                    if r1[j] == r2[j]:
+                        same_cnt += 1
+                    else:
+                        diffs.append({
+                            'from_row': rows1[i1],
+                            'to_row': rows2[i2],
+                            'col': j,
+                            'from_val': r1[j],
+                            'to_val': r2[j]
+                        })
+                if same_cnt / col_l >= ROW_MODIFY_THRESHOLD:
+                    diff['modified_cells'].extend(diffs)
+                    to_row = i2
+                    break
+                i2 += 1
+            if to_row >= 0:
+                rows1.pop(i1)
+                rows2.pop(to_row)
+            else:
+                i1 += 1
+        diff['added_rows'] = rows2
+        diff['removed_rows'] = rows1
         return diff
 
     @staticmethod
@@ -216,12 +246,9 @@ class ExcelDiffer:
         :return: data diff
         """
         data_diff = {
-            "modified_rows": [],
-            "added_rows": [],
-            "removed_rows": [],
-            "moved_rows": [],
-            "duplicated_src_rows": dict(),
-            "duplicated_dest_rows": dict()
+            'moved_rows': [],
+            'duplicated_src_rows': dict(),
+            'duplicated_dest_rows': dict()
         }
         # get rows both have, remove duplicates
         row_hashes1, row_hashes2 = dict(), dict()
@@ -229,13 +256,13 @@ class ExcelDiffer:
         for i in range(len(d1)):
             row_hash1 = '|||'.join(d1[i])
             if row_hash1 in row_hashes1.keys():
-                data_diff["duplicated_src_rows"][i] = row_hashes1[row_hash1]
+                data_diff['duplicated_src_rows'][i] = row_hashes1[row_hash1]
             else:
                 row_hashes1[row_hash1] = i
         for i in range(len(d2)):
             row_hash2 = '|||'.join(d2[i])
             if row_hash2 in row_hashes2.keys():
-                data_diff["duplicated_dest_rows"][i] = row_hashes2[row_hash2]
+                data_diff['duplicated_dest_rows'][i] = row_hashes2[row_hash2]
             else:
                 row_hashes2[row_hash2] = i
                 if row_hash2 in row_hashes1.keys():
@@ -243,10 +270,10 @@ class ExcelDiffer:
         # get mapping of kept indices
         kept_indices1 = list(kept_rows.keys())
         if len(kept_indices1) == 0:
-            partial_data_diff = ExcelDiffer._diff_data(d1, d2)
-            data_diff["modified_rows"].extend(partial_data_diff["modified_rows"])
-            data_diff["removed_rows"].extend(partial_data_diff["removed_rows"])
-            data_diff["added_rows"].extend(partial_data_diff["added_rows"])
+            diff = ExcelDiffer._diff_data(d1, d2, list(range(len(d1))), list(range(len(d2))))
+            data_diff['modified_rows'] = diff['modified_rows']
+            data_diff['removed_rows'] = diff['removed_rows']
+            data_diff['added_rows'] = diff['added_rows']
             return data_diff
         kept_indices1.sort()
         kept_indices2 = [kept_rows[idx] for idx in kept_indices1]
@@ -262,13 +289,19 @@ class ExcelDiffer:
                 lis_indices1.append(kept_indices1[i])
                 j += 1
             else:
-                data_diff["moved_rows"].append((kept_indices1[i], kept_indices2[i]))
+                data_diff['moved_rows'].append((kept_indices1[i], kept_indices2[i]))
             i += 1
         # TODO: get data needed real diff
         left_rows1 = list(set([_ for _ in range(len(d1))]).difference(kept_rows.keys()))
         left_rows1.sort()
         left_rows2 = list(set([_ for _ in range(len(d2))]).difference(kept_rows.values()))
         left_rows2.sort()
+        rd1 = [d1[i] for i in left_rows1]
+        rd2 = [d2[i] for i in left_rows2]
+        diff = ExcelDiffer._diff_data(rd1, rd2, left_rows1, left_rows2)
+        data_diff['modified_rows'] = diff['modified_rows']
+        data_diff['removed_rows'] = diff['removed_rows']
+        data_diff['added_rows'] = diff['added_rows']
         return data_diff
 
     def get_diff_report(self, src_dir: str, dest_dir: str) -> (dict, str):
@@ -278,31 +311,31 @@ class ExcelDiffer:
         :param dest_dir: directory containing destination excel files
         :return: report dict and string
         """
-        LOGGER.info("Get excel diff report --- src: %s, dest: %s" % (src_dir, dest_dir))
+        LOGGER.info('Get excel diff report --- src: %s, dest: %s' % (src_dir, dest_dir))
         report = {
-            "added_files": [],
-            "removed_files": [],
-            "modified_files": [],
+            'added_files': [],
+            'removed_files': [],
+            'modified_files': [],
         }
         src_files = ExcelDiffer.get_excel_files(src_dir)
         dest_files = ExcelDiffer.get_excel_files(dest_dir)
-        LOGGER.info("Src excel files: %s" % list(src_files))
-        LOGGER.info("Dest excel files: %s" % list(dest_files))
+        LOGGER.info('Src excel files: %s' % list(src_files))
+        LOGGER.info('Dest excel files: %s' % list(dest_files))
         rm, kp, ad = get_iter_diff(src_files, dest_files)
-        report["removed_files"] = rm
-        report["added_files"] = ad
+        report['removed_files'] = rm
+        report['added_files'] = ad
         for kf in kp:
             f1 = os.path.join(src_dir, kf)
             f2 = os.path.join(dest_dir, kf)
             try:
                 ret = self._diff_file(f1, f2)
                 if ret:
-                    ret["filename"] = kf
-                    report["modified_files"].append(ret)
+                    ret['filename'] = kf
+                    report['modified_files'].append(ret)
             except Exception as e:
-                msg = "Error while differing excel file %s and %s! %s" % (f1, f2, e)
+                msg = 'Error while differing excel file %s and %s! %s' % (f1, f2, e)
                 LOGGER.exception(msg)
-                report["errors"].append(msg)
+                report['errors'].append(msg)
         return report, ExcelDiffer._pprint_report(report)
 
 
