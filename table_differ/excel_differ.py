@@ -183,9 +183,16 @@ class ExcelDiffer:
         else:
             for i in range(self._start_row, s2.nrows):
                 d2.append([str(s2.cell_value(i, cols1_cols2[c])) for c in indices1])
-        data_diff = ExcelDiffer.diff_data(d1, d2)
+        data_diff = self.diff_data(d1, d2)
         if data_diff:
             modified = True
+            data_diff['modified_cells'] = [
+                dict(d, **{
+                    'from_col': indices1[d['from_col']] + self._start_col,
+                    'to_col': cols1_cols2[indices1[d['to_col']]] + self._start_col,
+                })
+                for d in data_diff['modified_cells']
+            ]
             sheet_diff['modified_data'].append(data_diff)
         return sheet_diff if modified else None
 
@@ -219,7 +226,8 @@ class ExcelDiffer:
                         diffs.append({
                             'from_row': rows1[i1],
                             'to_row': rows2[i2],
-                            'col': j,
+                            'from_col': j,
+                            'to_col': j,
                             'from_val': r1[j],
                             'to_val': r2[j]
                         })
@@ -237,8 +245,7 @@ class ExcelDiffer:
         diff['removed_rows'] = rows1
         return diff
 
-    @staticmethod
-    def diff_data(d1, d2):
+    def diff_data(self, d1, d2):
         """
         generate data diff
         :param d1: data 1
@@ -246,7 +253,7 @@ class ExcelDiffer:
         :return: data diff
         """
         data_diff = {
-            'moved_rows': [],
+            'moved_rows': dict(),
             'duplicated_src_rows': dict(),
             'duplicated_dest_rows': dict()
         }
@@ -256,13 +263,15 @@ class ExcelDiffer:
         for i in range(len(d1)):
             row_hash1 = '|||'.join(d1[i])
             if row_hash1 in row_hashes1.keys():
-                data_diff['duplicated_src_rows'][i] = row_hashes1[row_hash1]
+                data_diff['duplicated_src_rows'][i + self._start_row] = \
+                    row_hashes1[row_hash1] + self._start_row
             else:
                 row_hashes1[row_hash1] = i
         for i in range(len(d2)):
             row_hash2 = '|||'.join(d2[i])
             if row_hash2 in row_hashes2.keys():
-                data_diff['duplicated_dest_rows'][i] = row_hashes2[row_hash2]
+                data_diff['duplicated_dest_rows'][i + self._start_row] = \
+                    row_hashes2[row_hash2] + self._start_row
             else:
                 row_hashes2[row_hash2] = i
                 if row_hash2 in row_hashes1.keys():
@@ -271,37 +280,41 @@ class ExcelDiffer:
         kept_indices1 = list(kept_rows.keys())
         if len(kept_indices1) == 0:
             diff = ExcelDiffer._diff_data(d1, d2, list(range(len(d1))), list(range(len(d2))))
-            data_diff['modified_rows'] = diff['modified_rows']
-            data_diff['removed_rows'] = diff['removed_rows']
-            data_diff['added_rows'] = diff['added_rows']
-            return data_diff
-        kept_indices1.sort()
-        kept_indices2 = [kept_rows[idx] for idx in kept_indices1]
-        # get LIS of kept indices 2
-        lis_indices2 = lis(kept_indices2)
-        if len(lis_indices2) == len(kept_indices2) and len(lis_indices2) == len(d2):
-            return None  # no change
-        lis_indices1 = list()
-        i, j, l, lisl = 0, 0, len(kept_indices1), len(lis_indices2)
-        # get moved rows
-        while i < l and j < len(lis_indices2):
-            if kept_indices2[i] == lis_indices2[j]:
-                lis_indices1.append(kept_indices1[i])
-                j += 1
-            else:
-                data_diff['moved_rows'].append((kept_indices1[i], kept_indices2[i]))
-            i += 1
-        # TODO: get data needed real diff
-        left_rows1 = list(set([_ for _ in range(len(d1))]).difference(kept_rows.keys()))
-        left_rows1.sort()
-        left_rows2 = list(set([_ for _ in range(len(d2))]).difference(kept_rows.values()))
-        left_rows2.sort()
-        rd1 = [d1[i] for i in left_rows1]
-        rd2 = [d2[i] for i in left_rows2]
-        diff = ExcelDiffer._diff_data(rd1, rd2, left_rows1, left_rows2)
-        data_diff['modified_rows'] = diff['modified_rows']
-        data_diff['removed_rows'] = diff['removed_rows']
-        data_diff['added_rows'] = diff['added_rows']
+        else:
+            kept_indices1.sort()
+            kept_indices2 = [kept_rows[idx] for idx in kept_indices1]
+            # get LIS of kept indices 2
+            lis_indices2 = lis(kept_indices2)
+            if len(lis_indices2) == len(kept_indices2) and len(lis_indices2) == len(d2):
+                return None  # no change
+            lis_indices1 = list()
+            i, j, l, lisl = 0, 0, len(kept_indices1), len(lis_indices2)
+            # get moved rows
+            while i < l and j < len(lis_indices2):
+                if kept_indices2[i] == lis_indices2[j]:
+                    lis_indices1.append(kept_indices1[i])
+                    j += 1
+                else:
+                    data_diff['moved_rows'][kept_indices1[i] + self._start_row] = \
+                        kept_indices2[i] + self._start_row
+                i += 1
+            # TODO: get data needed real diff
+            left_rows1 = list(set([_ for _ in range(len(d1))]).difference(kept_rows.keys()))
+            left_rows1.sort()
+            left_rows2 = list(set([_ for _ in range(len(d2))]).difference(kept_rows.values()))
+            left_rows2.sort()
+            rd1 = [d1[i] for i in left_rows1]
+            rd2 = [d2[i] for i in left_rows2]
+            diff = ExcelDiffer._diff_data(rd1, rd2, left_rows1, left_rows2)
+        data_diff['modified_cells'] = [
+            dict(d, **{
+                'from_row': d['from_row'] + self._start_row,
+                'to_row': d['to_row'] + self._start_row,
+            })
+            for d in diff['modified_cells']
+        ]
+        data_diff['removed_rows'] = [self._start_row + i for i in diff['removed_rows']]
+        data_diff['added_rows'] = [self._start_row + i for i in diff['added_rows']]
         return data_diff
 
     def get_diff_report(self, src_dir: str, dest_dir: str) -> (dict, str):
