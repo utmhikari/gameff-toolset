@@ -1,18 +1,19 @@
 import json
 import logger
 
-CONFIG_FILE = './config.py'
+
 ENCODING = 'utf-8'
 LOGGER = logger.get_logger('CONFIG')
 
 
 class Config:
-    def __init__(self):
+    def __init__(self, config_path):
         self._cfg = dict()
+        self._cfg_path = config_path
 
     def load(self) -> (bool, str):
         try:
-            with open(CONFIG_FILE, encoding=ENCODING) as f:
+            with open(self._cfg_path, encoding=ENCODING) as f:
                 cfg = json.loads(f.read())
                 if isinstance(cfg, dict):
                     self._cfg = cfg
@@ -34,6 +35,9 @@ class Config:
         self._cfg = cfg
         return True, ''
 
-    def get(self) -> dict:
+    def get_instance(self):
         return self._cfg
+
+    def get(self, key):
+        return self._cfg.get(key, default=None)
 

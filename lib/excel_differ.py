@@ -70,7 +70,7 @@ class ExcelDiffer:
         ExcelDiffer._get_excel_files(directory, directory, files)
         return files
 
-    def _diff_file(self, f1, f2):
+    def diff_file(self, f1: str, f2: str):
         """
         get file diff
         :param f1: file 1
@@ -100,7 +100,7 @@ class ExcelDiffer:
             sheet2 = d2.sheet_by_name(sheet_name)
             LOGGER.info('Get sheet %s diff --- src: %s, dest: %s' % (sheet_name, f1, f2))
             try:
-                sheet_diff = self._diff_sheet(sheet1, sheet2)
+                sheet_diff = self.diff_sheet(sheet1, sheet2)
                 if sheet_diff:
                     modified = True
                     file_diff['modified_sheets'].append(sheet_diff)
@@ -109,7 +109,7 @@ class ExcelDiffer:
                                  % (sheet_name, f1, f2, e))
         return file_diff if modified else None
 
-    def _diff_sheet(self, s1: xlrd.sheet.Sheet, s2: xlrd.sheet.Sheet):
+    def diff_sheet(self, s1: xlrd.sheet.Sheet, s2: xlrd.sheet.Sheet):
         """
         get sheet diff
         :param s1: sheet 1
@@ -245,7 +245,7 @@ class ExcelDiffer:
         diff['removed_rows'] = rows1
         return diff
 
-    def diff_data(self, d1, d2):
+    def diff_data(self, d1: [[str]], d2: [[str]]):
         """
         generate data diff
         :param d1: data 1
@@ -298,7 +298,6 @@ class ExcelDiffer:
                     data_diff['moved_rows'][kept_indices1[i] + self._start_row] = \
                         kept_indices2[i] + self._start_row
                 i += 1
-            # TODO: get data needed real diff
             left_rows1 = list(set([_ for _ in range(len(d1))]).difference(kept_rows.keys()))
             left_rows1.sort()
             left_rows2 = list(set([_ for _ in range(len(d2))]).difference(kept_rows.values()))
@@ -341,7 +340,7 @@ class ExcelDiffer:
             f1 = os.path.join(src_dir, kf)
             f2 = os.path.join(dest_dir, kf)
             try:
-                ret = self._diff_file(f1, f2)
+                ret = self.diff_file(f1, f2)
                 if ret:
                     ret['filename'] = kf
                     report['modified_files'].append(ret)
