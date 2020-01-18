@@ -20,7 +20,7 @@
             {
               "name": "kaka",
               "indices": [
-                3
+                4
               ]
             }
           ],
@@ -28,77 +28,77 @@
             {
               "name": "case",
               "indices": [
-                7
+                8
               ]
             },
             {
               "name": "gender",
               "indices": [
-                5
+                6
               ]
             }
           ],
           "modified_data": {
             "moved_rows": {
-              "5": 9
+              "6": 10
             },
             "duplicated_src_rows": {
-              "4": 3
+              "5": 4
             },
             "duplicated_dest_rows": {
-              "10": 9
+              "11": 10
             },
+            "removed_rows": [
+              4,
+              9
+            ],
+            "added_rows": [
+              3,
+              8,
+              9,
+              12
+            ],
             "modified_cells": [
               {
-                "src_row": 2,
-                "dest_row": 4,
-                "src_col": 0,
-                "dest_col": 0,
+                "src_row": 3,
+                "dest_row": 5,
+                "src_col": 1,
+                "dest_col": 1,
                 "src_val": "2.0",
                 "dest_val": "4.0"
               },
               {
-                "src_row": 2,
-                "dest_row": 4,
-                "src_col": 4,
-                "dest_col": 5,
+                "src_row": 3,
+                "dest_row": 5,
+                "src_col": 5,
+                "dest_col": 6,
                 "src_val": "456.0",
                 "dest_val": "455.0"
               },
               {
-                "src_row": 7,
-                "dest_row": 6,
-                "src_col": 1,
-                "dest_col": 1,
+                "src_row": 8,
+                "dest_row": 7,
+                "src_col": 2,
+                "dest_col": 2,
                 "src_val": "kazi",
                 "dest_val": "kazzi"
               },
               {
-                "src_row": 9,
-                "dest_row": 5,
-                "src_col": 2,
-                "dest_col": 2,
+                "src_row": 10,
+                "dest_row": 6,
+                "src_col": 3,
+                "dest_col": 3,
                 "src_val": "electric",
                 "dest_val": "hiphop"
               },
               {
-                "src_row": 9,
-                "dest_row": 5,
-                "src_col": 3,
-                "dest_col": 4,
+                "src_row": 10,
+                "dest_row": 6,
+                "src_col": 4,
+                "dest_col": 5,
                 "src_val": "2011.0",
                 "dest_val": "2019.0"
               }
-            ],
-            "removed_rows": [
-              3,
-              8
-            ],
-            "added_rows": [
-              2,
-              7,
-              8,
-              11
             ]
           },
           "name": "Sheet1"
@@ -108,7 +108,7 @@
             {
               "name": "yy",
               "indices": [
-                1
+                2
               ]
             }
           ],
@@ -116,7 +116,7 @@
             {
               "name": "zz",
               "indices": [
-                1
+                2
               ]
             }
           ],

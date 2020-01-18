@@ -227,14 +227,14 @@ class ExcelDiffer:
             md = sheet_diff['modified_data']
             for k in ['moved_rows', 'duplicated_src_rows', 'duplicated_dest_rows']:
                 if k in md.keys():
-                    sd[k] = dict()
+                    sd['modified_data'][k] = dict()
                     for sr in md[k]:
-                        sd[k][int(sr) + 1] = md[k] + 1
+                        sd['modified_data'][k][sr + 1] = md[k][sr] + 1
             for k in ['removed_rows', 'added_rows']:
                 if k in md.keys():
-                    sd[k] = [i + 1 for i in md[k]]
+                    sd['modified_data'][k] = [i + 1 for i in md[k]]
             if 'modified_cells' in md.keys():
-                sd['modified_cells'] = [
+                sd['modified_data']['modified_cells'] = [
                     dict(mc, **{
                         'src_row': mc['src_row'] + 1,
                         'dest_row': mc['dest_row'] + 1,
@@ -465,7 +465,7 @@ class ExcelDiffer:
 
 
 if __name__ == '__main__':
-    ed = ExcelDiffer()
+    ed = ExcelDiffer(use_excel_indices=True)
     src = './test/excel_differ/src'
     dest = './test/excel_differ/dest'
     _r = ed.get_diff_report(src, dest)
