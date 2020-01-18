@@ -50,6 +50,7 @@ def lis(seq: []):
                 else:
                     right = mid
             j = left
+        # j: insert point, p[i]: prev lis number's idx
         p[i] = m[j - 1]
         if j == k or seq[i] < seq[m[j]]:
             m[j] = i

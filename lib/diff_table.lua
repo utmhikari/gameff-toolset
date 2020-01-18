@@ -4,3 +4,172 @@
 --- DateTime: 2020-01-14 23:19
 ---
 
+local function diff(st, dt)
+    local add = {}
+    local delete = {}
+    local modify = {}
+    local hasdiff = false
+    for k, _ in pairs(st) do
+        delete[k] = true
+    end
+    for k, dv in pairs(dt) do
+        local sv = st[k]
+        if sv == nil then
+            add[k] = dv
+            hasdiff = true
+        else
+            delete[k] = nil
+            local tsv = type(sv)
+            local dsv = type(dv)
+            if tsv ~= dsv then
+                modify[k] = dv
+                hasdiff = true
+            elseif tsv ~= "table" then
+                if sv ~= dv then
+                    modify[k] = dv
+                    hasdiff = true
+                end
+            else
+                local nt = diff(sv, dv)
+                if nt.hasdiff then
+                    modify[k] = nt
+                    hasdiff = false
+                end
+            end
+        end
+    end
+    for _, _ in pairs(delete) do
+        if hasdiff then
+            break
+        end
+        hasdiff = true
+    end
+    return {
+        add = add,
+        delete = delete,
+        modify = modify,
+        hasdiff = hasdiff
+    }
+end
+
+local indent = "  "
+local tinsert = table.insert
+local tconcat = table.concat
+
+local function pt(t, tb, p)
+    tinsert(t, "{")
+    tinsert(t, "\n")
+    local curlen = #t
+    local haskey = false
+    for k, v in pairs(tb) do
+        tinsert(t, p)
+        tinsert(t, indent)
+        tinsert(t, tostring(k))
+        tinsert(t, " = ")
+        local tv = type(v)
+        if tv == "string" then
+            local fv = string.format("%q", v):gsub("\\\n", "\\n")
+            tinsert(t, fv)
+        elseif tv == "table" then
+            pt(t, v, p .. indent)
+        else
+            tinsert(t, tostring(v))
+        end
+        tinsert(t, ",\n")
+        haskey = true
+    end
+    if not haskey then
+        t[curlen] = ""
+    else
+        tinsert(t, p)
+    end
+    tinsert(t, "}")
+end
+
+local function printt(tb)
+    t = {}
+    pt(t, tb, "")
+    return tconcat(t, "")
+end
+
+--- test case
+
+local t1 = {
+    [1] = {
+        name = "tom",
+        desc = "ttt",
+        time = 2010,
+        exp = 789,
+        lvl = 12,
+    },
+    [2] = {
+        name = "sam",
+        desc = "sammy",
+        time = 2011,
+        exp = 456,
+        lvl = 15,
+    },
+    [3] = {
+        name = "peter",
+        desc = "pt",
+        time = 2000,
+        exp = 889,
+        lvl = 29,
+    },
+    [4] = {
+        name = "dio",
+        desc = "world",
+        time = 1998,
+        exp = 888,
+        lvl = 55,
+    },
+    [5] = {
+        name = "kazi",
+        desc = "zhunan",
+        time = 101,
+        exp = 123,
+        lvl = 50
+    },
+}
+
+local t2 = {
+    [1] = {
+        name = "tom",
+        desc = "ttt",
+        time = 2010,
+        exp = 789,
+        lvl = 12,
+    },
+    [2] = {
+        name = "sam",
+        desc = "sammy",
+        time = 2011,
+        exp = 456,
+    },
+    [4] = {
+        name = "dio",
+        desc = "world",
+        time = 1998,
+        exp = 888,
+        lvl = 55,
+        skill = "time\nstop"
+    },
+    [5] = {
+        name = "kazzi",
+        desc = "zhunan",
+        time = 101,
+        exp = 123,
+        lvl = 50
+    },
+    [6] = {
+        name = "alonso",
+        desc = "f1",
+        time = 2003,
+        exp = "546",
+        lvl = 13
+    }
+}
+
+local tdiff = diff(t1, t2)
+
+print(printt(tdiff))

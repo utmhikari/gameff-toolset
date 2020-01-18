@@ -1,7 +1,7 @@
 # gameff-toolset
 
 a toolset for daily office work on game project development
-游戏研发日常小工具合集
+游戏项目研发日常小工具脚本合集
 
 ## requirements
 
@@ -9,19 +9,22 @@ python >= 3.5
 
 ## usage
 
-ctrl+c and ctrl+v
+ctrl+c & ctrl+v
 
 ## modules
 
 ### excel differ
 
-做日常excel的diff。输入两个文件夹，输出结果报告。
+输入两个包含excel文件的文件夹，可为同名的excel文件做diff，输出结果报告。
+需要指定表头行，数据起始行，数据起始列（以0为首）。暂不支持表头为一列的情况，需要自行转置。
 
 see `lib/excel_differ.py` for details
 
+all indices are based on `(0, 0)` in default, yet excel uses `(1, 1)` at left top, set `use_excel_indices=True` in ExcelDiffer constructor to fix the problem
+
 view `test/excel_differ/report.json` for report example
 
-```json
+```text
 {
     added_files: [(str) file name from dest dir],
     removed_files: [(str) file name from dest dir],
@@ -75,8 +78,6 @@ view `test/excel_differ/report.json` for report example
 }
 ```
 
-all indices are based on `(0, 0)` in default, yet excel uses `(1, 1)` at left top
+## miscs
 
-set `use_excel_indices=True` in ExcelDiffer constructor to fix the problem
-
-
+- lua table differ and table tostring script (`lib/diff_table.lua`)
