@@ -11,19 +11,28 @@ LOGGER = logger.get_logger('EXCEL_DIFFER')
 class ExcelDiffer:
     """
     Excel Differ
-    Must With Header
-    Optional With Header Description
+    Users must specify header row, start row and start col
+    Only support header as row now~
+    see get_diff_report method for details
     """
-
     def __init__(self,
                  start_row: int = 1,
                  start_col: int = 0,
                  header_row: int = 0,
-                 row_modify_threshold: float = 0.66):
+                 row_modify_threshold: float = 0.66,
+                 use_excel_indices: bool = False):
+        """
+        :param start_row: start row of data
+        :param start_col: start col of data
+        :param header_row: start row of header
+        :param row_modify_threshold: the ratio threshold to judge if the dest row is modified from the src row
+        :param use_excel_indices: whether +1 to all indices as excel shows (row 1, col 1) on left top
+        """
         self._start_row = start_row
         self._start_col = start_col
         self._header_row = header_row
         self._row_modify_threshold = row_modify_threshold
+        self._use_excel_indices = use_excel_indices
 
     @staticmethod
     def _get_excel_files(r, d, fs: set):
@@ -65,8 +74,8 @@ class ExcelDiffer:
     def diff_file(self, f1: str, f2: str):
         """
         get file diff
-        :param f1: file 1
-        :param f2: file 2
+        :param f1: file path 1
+        :param f2: file path 2
         :return: file diff report dict
         """
         LOGGER.info('Get file diff --- src: %s, dest: %s' % (f1, f2))
@@ -112,7 +121,7 @@ class ExcelDiffer:
         sheet_diff = {
             'added_cols': [],
             'removed_cols': [],
-            'modified_data': [],
+            'modified_data': {},
         }
         modified = True
         # diff header
@@ -183,13 +192,58 @@ class ExcelDiffer:
             modified = True
             data_diff['modified_cells'] = [
                 dict(d, **{
-                    'from_col': indices1[d['from_col']] + self._start_col,
-                    'to_col': cols1_cols2[indices1[d['to_col']]] + self._start_col,
+                    'src_col': indices1[d['src_col']] + self._start_col,
+                    'dest_col': cols1_cols2[indices1[d['dest_col']]] + self._start_col,
                 })
                 for d in data_diff['modified_cells']
             ]
-            sheet_diff['modified_data'].append(data_diff)
+            sheet_diff['modified_data'] = data_diff
+        # +1 to all indices if using excel
+        if modified and self._use_excel_indices:
+            sheet_diff = ExcelDiffer._convert_idx_of_sheet_diff(sheet_diff)
         return sheet_diff if modified else None
+
+    @staticmethod
+    def _convert_idx_of_sheet_diff(sheet_diff: dict):
+        """
+        +1 to all indices in sheet diff
+        :param sheet_diff: sheet diff
+        :return: new sheet diff
+        """
+        sd = dict()
+        if 'name' in sheet_diff.keys():
+            sd['name'] = sheet_diff['name']
+        for k in ['added_cols', 'removed_cols']:
+            if k in sheet_diff.keys():
+                sd[k] = [
+                    {
+                        'name': c['name'],
+                        'indices': [i + 1 for i in c['indices']]
+                    }
+                    for c in sheet_diff[k]
+                ]
+        if 'modified_data' in sheet_diff.keys():
+            sd['modified_data'] = dict()
+            md = sheet_diff['modified_data']
+            for k in ['moved_rows', 'duplicated_src_rows', 'duplicated_dest_rows']:
+                if k in md.keys():
+                    sd[k] = dict()
+                    for sr in md[k]:
+                        sd[k][int(sr) + 1] = md[k] + 1
+            for k in ['removed_rows', 'added_rows']:
+                if k in md.keys():
+                    sd[k] = [i + 1 for i in md[k]]
+            if 'modified_cells' in md.keys():
+                sd['modified_cells'] = [
+                    dict(mc, **{
+                        'src_row': mc['src_row'] + 1,
+                        'dest_row': mc['dest_row'] + 1,
+                        'src_col': mc['src_col'] + 1,
+                        'dest_col': mc['dest_col'] + 1,
+                    })
+                    for mc in md['modified_cells']
+                ]
+        return sd
 
     def diff_data(self, d1: [[str]], d2: [[str]]):
         """
@@ -244,9 +298,13 @@ class ExcelDiffer:
                     data_diff['moved_rows'][kept_indices1[i] + self._start_row] = \
                         kept_indices2[i] + self._start_row
                 i += 1
-            left_rows1 = list(set(list(range(len(d1)))).difference(kept_rows.keys()))
+            left_rows1 = list(set(list(range(len(d1))))
+                              .difference(kept_rows.keys())
+                              .difference(set([idx - self._start_row for idx in data_diff['duplicated_src_rows'].keys()])))
             left_rows1.sort()
-            left_rows2 = list(set(list(range(len(d2)))).difference(kept_rows.values()))
+            left_rows2 = list(set(list(range(len(d2))))
+                              .difference(kept_rows.values())
+                              .difference(set([idx - self._start_row for idx in data_diff['duplicated_dest_rows'].keys()])))
             left_rows2.sort()
             rd1 = [d1[i] for i in left_rows1]
             rd2 = [d2[i] for i in left_rows2]
@@ -258,8 +316,8 @@ class ExcelDiffer:
             # ppt(diff)
         data_diff['modified_cells'] = [
             dict(d, **{
-                'from_row': d['from_row'] + self._start_row,
-                'to_row': d['to_row'] + self._start_row,
+                'src_row': d['src_row'] + self._start_row,
+                'dest_row': d['dest_row'] + self._start_row,
             })
             for d in diff['modified_cells']
         ]
@@ -269,9 +327,9 @@ class ExcelDiffer:
 
     def _diff_modified_data(self, d1, d2, rows1, rows2):
         """
-        diff, assuming that data must have diff
-        :param d1:
-        :param d2:
+        diff, assuming that data1 and data 2 must have diff
+        :param d1: data 1
+        :param d2: data 2
         :return:
         """
         diff = {
@@ -282,7 +340,7 @@ class ExcelDiffer:
         i1 = 0
         visited_i2 = set()
         while i1 < len(rows1):
-            to_row = -1
+            dest_row = -1
             r1 = d1[i1]
             i2 = 0
             while i2 < len(rows2):
@@ -295,19 +353,19 @@ class ExcelDiffer:
                             same_cnt += 1
                         else:
                             diffs.append({
-                                'from_row': rows1[i1],
-                                'to_row': rows2[i2],
-                                'from_col': j,
-                                'to_col': j,
-                                'from_val': r1[j],
-                                'to_val': r2[j]
+                                'src_row': rows1[i1],
+                                'dest_row': rows2[i2],
+                                'src_col': j,
+                                'dest_col': j,
+                                'src_val': r1[j],
+                                'dest_val': r2[j]
                             })
                     if same_cnt / col_l >= self._row_modify_threshold:
                         diff['modified_cells'].extend(diffs)
-                        to_row = rows2[i2]
+                        dest_row = rows2[i2]
                         break
                 i2 += 1
-            if to_row >= 0:
+            if dest_row >= 0:
                 visited_i2.add(i2)
             else:
                 diff['removed_rows'].append(rows1[i1])
@@ -320,6 +378,58 @@ class ExcelDiffer:
     def get_diff_report(self, src_dir: str, dest_dir: str) -> (dict, str):
         """
         generate diff report from directories including excel files
+        input 2 directories of excel files, output diff of 2 directories
+        the whole report includes: {
+            added_files: [(str) file name from dest dir],
+            removed_files: [(str) file name from dest dir],
+            modified_files: [
+                {
+                    name: (str) file name,
+                    added_sheets: [(str) sheet name from dest file],
+                    removed_sheets: [(str) sheet name from src file],
+                    modified_sheets: [
+                        {
+                            name: (str) sheet name,
+                            added_cols: [
+                                {
+                                    name: (str) col/header name,
+                                    indices: [(int) idx of added cols from dest sheet]
+                                }
+                            ],
+                            removed_cols: [
+                                {
+                                    name: (str) col/header name,
+                                    indices: [(int) idx of removed cols from src sheet]
+                                }
+                            ],
+                            modified data: {
+                                moved_rows: {
+                                    (str(int)) src_row_idx: (int) dest_row_idx
+                                },
+                                duplicated_src_rows: {
+                                    (str(int)) dup_src_row_idx: (int) first_exist_src_row_idx
+                                },
+                                duplicated_dest_rows: {
+                                    (str(int)) dup_dest_row_idx: (int) first_exist_dest_row_idx
+                                },
+                                added rows: [(int) added rows from dest sheet, exclude duplicated rows],
+                                removed rows: [(int) removed rows from src sheet, exclude duplicated rows],
+                                modified cells: [
+                                    {
+                                        src_row: (int) row idx of src cell,
+                                        dest_row: (int) row idx of dest cell,
+                                        src_col: (int) col idx of src cell,
+                                        dest_col: (int) col idx of dest cell,
+                                        src_val: (str) value of src cell,
+                                        dest_val: (str) value of dest cell
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
         :param src_dir: directory containing source excel files
         :param dest_dir: directory containing destination excel files
         :return: report dict and string
@@ -343,7 +453,7 @@ class ExcelDiffer:
             try:
                 ret = self.diff_file(f1, f2)
                 if ret:
-                    ret['filename'] = kf
+                    ret['name'] = kf
                     report['modified_files'].append(ret)
                 else:
                     LOGGER.info("File %s did not change...", kf)

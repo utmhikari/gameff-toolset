@@ -38,67 +38,69 @@
               ]
             }
           ],
-          "modified_data": [
-            {
-              "moved_rows": {
-                "4": 9
+          "modified_data": {
+            "moved_rows": {
+              "5": 9
+            },
+            "duplicated_src_rows": {
+              "4": 3
+            },
+            "duplicated_dest_rows": {
+              "10": 9
+            },
+            "modified_cells": [
+              {
+                "src_row": 2,
+                "dest_row": 4,
+                "src_col": 0,
+                "dest_col": 0,
+                "src_val": "2.0",
+                "dest_val": "4.0"
               },
-              "duplicated_src_rows": {},
-              "duplicated_dest_rows": {},
-              "modified_cells": [
-                {
-                  "from_row": 2,
-                  "to_row": 4,
-                  "from_col": 0,
-                  "to_col": 0,
-                  "from_val": "2.0",
-                  "to_val": "4.0"
-                },
-                {
-                  "from_row": 2,
-                  "to_row": 4,
-                  "from_col": 4,
-                  "to_col": 5,
-                  "from_val": "456.0",
-                  "to_val": "455.0"
-                },
-                {
-                  "from_row": 6,
-                  "to_row": 6,
-                  "from_col": 1,
-                  "to_col": 1,
-                  "from_val": "kazi",
-                  "to_val": "kazzi"
-                },
-                {
-                  "from_row": 8,
-                  "to_row": 5,
-                  "from_col": 2,
-                  "to_col": 2,
-                  "from_val": "electric",
-                  "to_val": "hiphop"
-                },
-                {
-                  "from_row": 8,
-                  "to_row": 5,
-                  "from_col": 3,
-                  "to_col": 4,
-                  "from_val": "2011.0",
-                  "to_val": "2019.0"
-                }
-              ],
-              "removed_rows": [
-                3,
-                7
-              ],
-              "added_rows": [
-                2,
-                7,
-                8,
-                10
-              ]
-            }
-          ],
+              {
+                "src_row": 2,
+                "dest_row": 4,
+                "src_col": 4,
+                "dest_col": 5,
+                "src_val": "456.0",
+                "dest_val": "455.0"
+              },
+              {
+                "src_row": 7,
+                "dest_row": 6,
+                "src_col": 1,
+                "dest_col": 1,
+                "src_val": "kazi",
+                "dest_val": "kazzi"
+              },
+              {
+                "src_row": 9,
+                "dest_row": 5,
+                "src_col": 2,
+                "dest_col": 2,
+                "src_val": "electric",
+                "dest_val": "hiphop"
+              },
+              {
+                "src_row": 9,
+                "dest_row": 5,
+                "src_col": 3,
+                "dest_col": 4,
+                "src_val": "2011.0",
+                "dest_val": "2019.0"
+              }
+            ],
+            "removed_rows": [
+              3,
+              8
+            ],
+            "added_rows": [
+              2,
+              7,
+              8,
+              11
+            ]
+          },
           "name": "Sheet1"
         },
         {
@@ -118,11 +120,11 @@
               ]
             }
           ],
-          "modified_data": [],
+          "modified_data": {},
           "name": "Sheet2"
         }
       ],
-      "filename": "2.xlsx"
+      "name": "2.xlsx"
     },
     {
       "added_sheets": [],
@@ -131,11 +133,11 @@
         {
           "added_cols": [],
           "removed_cols": [],
-          "modified_data": [],
+          "modified_data": {},
           "name": "Sheet1"
         }
       ],
-      "filename": "3.xlsx"
+      "name": "3.xlsx"
     }
   ]
 }
