@@ -1,8 +1,11 @@
 import logging
+import sys
+
+logging_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 logging.basicConfig(
-    format='[%(name)s][%(asctime)s][%(levelname)s]: %(message)s',
-    level=logging.DEBUG
+    format=logging_format,
+    level=logging.DEBUG,
 )
 
 
@@ -12,4 +15,8 @@ def get_logger(name):
     :param name: logger name
     :return:
     """
-    return logging.getLogger(name)
+    logger = logging.getLogger(name)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.ERROR)
+    logger.addHandler(handler)
+    return logger

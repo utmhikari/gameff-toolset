@@ -1,5 +1,5 @@
 import os
-
+import pprint
 
 def get_iter_diff(a: iter, b: iter) -> (list, list, list):
     """
@@ -65,6 +65,10 @@ def lis(seq):
         result.append(seq[pos])
         pos = P[pos]
     return result[::-1]    # reversing
+
+
+def ppt(o):
+    pprint.pprint(o, indent=2)
 
 
 if __name__ == '__main__':
