@@ -39,6 +39,7 @@ def lis(seq: []):
     m, p, k = [None] * l, [None] * l, 1
     m[0] = 0
     for i in range(1, l):
+        # find the insert point (j) of seq[i] in current lis
         if seq[m[k - 1]] < seq[i]:
             j = k
         else:
@@ -50,7 +51,9 @@ def lis(seq: []):
                 else:
                     right = mid
             j = left
-        # j: insert point, p[i]: prev lis number's idx
+        # m[j - 1]: smallest number's idx in seq on lis length of j
+        # p[i]: prev lis number's idx
+        # k: current lis length
         p[i] = m[j - 1]
         if j == k or seq[i] < seq[m[j]]:
             m[j] = i
@@ -68,4 +71,4 @@ def ppt(o):
 
 
 if __name__ == '__main__':
-    print(lis([4, 2, 4, 7, 5, 6, 8]))
+    print(lis([30, 10, 20, 50, 40, 80, 60]))
