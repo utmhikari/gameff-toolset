@@ -1,7 +1,8 @@
 # gameff-toolset
 
-a toolset for daily office work on game project development
 游戏项目研发日常小工具脚本合集
+
+a toolset for daily office work on game project development
 
 ## requirements
 
@@ -14,6 +15,8 @@ ctrl+c & ctrl+v
 ## modules
 
 ### excel differ
+
+为策划和测试人员准备，跟进策划表的修改
 
 输入两个包含excel文件的文件夹，可为同名的excel文件做diff，输出结果报告。
 需要指定表头行，数据起始行，数据起始列（以0为首）。暂不支持表头为一列的情况，需要自行转置。
@@ -80,4 +83,4 @@ view `test/excel_differ/report.json` for report example
 
 ## miscs
 
-- lua table differ and table tostring script (`lib/diff_table.lua`)
+- lua table differ and table tostring script (`lualib/diff_table.lua`)
