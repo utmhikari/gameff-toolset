@@ -16,6 +16,8 @@ ctrl+c & ctrl+v
 
 ### excel differ
 
+[blog](http://utmhikari.top/2020/01/23/testlife/excel_diff/)
+
 为策划和测试人员准备，跟进策划表的修改
 
 输入两个包含excel文件的文件夹，可为同名的excel文件做diff，输出结果报告。
