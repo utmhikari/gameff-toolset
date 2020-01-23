@@ -123,7 +123,7 @@ class ExcelDiffer:
             'removed_cols': [],
             'modified_data': {},
         }
-        modified = True
+        modified = False
         # diff header
         headers1 = [str(v) for v in s1.row_values(self._header_row, start_colx=self._start_col)]
         headers2 = [str(v) for v in s2.row_values(self._header_row, start_colx=self._start_col)]
@@ -260,7 +260,12 @@ class ExcelDiffer:
         # get rows both have, remove duplicates
         row_hashes1, row_hashes2 = dict(), dict()
         kept_rows = dict()
+        empty_rows1, empty_rows2 = set(), set()
         for i in range(len(d1)):
+            # check cell of first column to judge if the row is valid
+            if len(d1[i][0]) == 0:
+                empty_rows1.add(i)
+                continue
             row_hash1 = '|||'.join(d1[i])
             if row_hash1 in row_hashes1.keys():
                 data_diff['duplicated_src_rows'][i + self._start_row] = \
@@ -268,6 +273,9 @@ class ExcelDiffer:
             else:
                 row_hashes1[row_hash1] = i
         for i in range(len(d2)):
+            if len(d2[i][0]) == 0:
+                empty_rows2.add(i)
+                continue
             row_hash2 = '|||'.join(d2[i])
             if row_hash2 in row_hashes2.keys():
                 data_diff['duplicated_dest_rows'][i + self._start_row] = \
@@ -276,11 +284,14 @@ class ExcelDiffer:
                 row_hashes2[row_hash2] = i
                 if row_hash2 in row_hashes1.keys():
                     kept_rows[row_hashes1[row_hash2]] = i
+        # get valid rows
+        left_rows1 = list(set(range(len(d1))).difference(empty_rows1))
+        left_rows1.sort()
+        left_rows2 = list(set(range(len(d2))).difference(empty_rows2))
+        left_rows2.sort()
         # get mapping of kept indices
         kept_indices1 = list(kept_rows.keys())
-        if len(kept_indices1) == 0:
-            diff = self._diff_modified_data(d1, d2, list(range(len(d1))), list(range(len(d2))))
-        else:
+        if len(kept_indices1) >= 0:
             kept_indices1.sort()
             kept_indices2 = [kept_rows[idx] for idx in kept_indices1]
             # get LIS of kept indices 2
@@ -298,22 +309,22 @@ class ExcelDiffer:
                     data_diff['moved_rows'][kept_indices1[i] + self._start_row] = \
                         kept_indices2[i] + self._start_row
                 i += 1
-            left_rows1 = list(set(list(range(len(d1))))
+            left_rows1 = list(set(left_rows1)
                               .difference(kept_rows.keys())
                               .difference(set([idx - self._start_row for idx in data_diff['duplicated_src_rows'].keys()])))
             left_rows1.sort()
-            left_rows2 = list(set(list(range(len(d2))))
+            left_rows2 = list(set(left_rows2)
                               .difference(kept_rows.values())
                               .difference(set([idx - self._start_row for idx in data_diff['duplicated_dest_rows'].keys()])))
             left_rows2.sort()
-            rd1 = [d1[i] for i in left_rows1]
-            rd2 = [d2[i] for i in left_rows2]
-            # ppt(rd1)
-            # ppt(left_rows1)
-            # ppt(rd2)
-            # ppt(left_rows2)
-            diff = self._diff_modified_data(rd1, rd2, left_rows1, left_rows2)
-            # ppt(diff)
+        rd1 = [d1[i] for i in left_rows1]
+        rd2 = [d2[i] for i in left_rows2]
+        # ppt(rd1)
+        # ppt(left_rows1)
+        # ppt(rd2)
+        # ppt(left_rows2)
+        diff = self._diff_modified_data(rd1, rd2, left_rows1, left_rows2)
+        # ppt(diff)
         data_diff['modified_cells'] = [
             dict(d, **{
                 'src_row': d['src_row'] + self._start_row,
@@ -323,7 +334,11 @@ class ExcelDiffer:
         ]
         data_diff['removed_rows'] = [self._start_row + i for i in diff['removed_rows']]
         data_diff['added_rows'] = [self._start_row + i for i in diff['added_rows']]
-        return data_diff
+        if len(data_diff['moved_rows'].keys()) > 0 or \
+                len(data_diff['added_rows']) > 0 or \
+                len(data_diff['removed_rows']) > 0 or \
+                len(data_diff['modified_cells']) > 0:
+            return data_diff
 
     def _diff_modified_data(self, d1, d2, rows1, rows2):
         """

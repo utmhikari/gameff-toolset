@@ -125,19 +125,6 @@
         }
       ],
       "name": "2.xlsx"
-    },
-    {
-      "added_sheets": [],
-      "removed_sheets": [],
-      "modified_sheets": [
-        {
-          "added_cols": [],
-          "removed_cols": [],
-          "modified_data": {},
-          "name": "Sheet1"
-        }
-      ],
-      "name": "3.xlsx"
     }
   ]
 }
