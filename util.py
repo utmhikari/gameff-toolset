@@ -1,10 +1,11 @@
 import os
 import pprint
+import hashlib
+import json
 
 """
 Common utils
 """
-
 
 def get_iter_diff(a: iter, b: iter) -> (list, list, list):
     """
@@ -66,8 +67,20 @@ def lis(seq: []):
     return ret[::-1]
 
 
-def ppt(o):
-    pprint.pprint(o, indent=2)
+def md5(s: str):
+    hl = hashlib.md5()
+    hl.update(s.encode(encoding='utf-8'))
+    return hl.hexdigest()
+
+
+def ppf(o, is_json=False) -> str:
+    if is_json:
+        return json.dumps(o, indent=2, ensure_ascii=False)
+    return pprint.pformat(o, indent=2)
+
+
+def ppt(o, printer: callable = print):
+    printer(ppf(o))
 
 
 if __name__ == '__main__':
