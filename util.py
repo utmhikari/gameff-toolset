@@ -76,11 +76,11 @@ def md5(s: str):
 def ppf(o, is_json=False) -> str:
     if is_json:
         return json.dumps(o, indent=2, ensure_ascii=False)
-    return pprint.pformat(o, indent=2)
+    return pprint.pformat(o, indent=2, width=1)
 
 
-def ppt(o, printer: callable = print):
-    printer(ppf(o))
+def ppt(o, printer: callable = print, is_json=False):
+    printer(ppf(o, is_json=is_json))
 
 
 if __name__ == '__main__':
