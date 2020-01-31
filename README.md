@@ -4,17 +4,17 @@
 
 a toolset for daily office work on game project development
 
-## requirements
+## Requirements
 
 python >= 3.5
 
-## usage
+## Usage
 
 ctrl+c & ctrl+v
 
-## modules
+## Modules
 
-### excel differ
+### Excel Differ
 
 [blog](http://utmhikari.top/2020/01/23/testlife/excel_diff/)
 
@@ -82,6 +82,17 @@ view `test/excel_differ/report.json` for report example
     ]
 }
 ```
+
+### Git Repo Manager
+
+A git repo manager based on [gitpython](https://gitpython.readthedocs.io/en/stable/intro.html)
+
+set envvar `GIT_PYTHON_GIT_EXECUTABLE` to the path of git executable
+
+一个简易的git repo管理类。基于gitpython，可以额外扩展更多的功能。现有的功能有：
+
+- get latest commit info
+- get file list at specific directory
 
 ## miscs
 
