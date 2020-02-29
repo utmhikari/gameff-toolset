@@ -83,16 +83,32 @@ view `test/excel_differ/report.json` for report example
 }
 ```
 
+### Table Checker
+
+Base table checker with global checker object and checker functions with decorators
+
+基于python的导表检查业务逻辑设计模式
+
+用一个全局的`table_checker`维护所有导表检查规则的函数。
+
+用户只需要在特定目录下写python文件，import全局的`table_checker`，调用`add_checker`装饰器，就可以注册导表规则到导表检查pipeline
+
+call `table_checker.check` to check the table data, users can also customize the logic if table data of prev commit will also be checked
+
+see `lib/table_checker.py` and `test/table_checker_test` for details
+
 ### Git Repo Manager
 
 A git repo manager based on [gitpython](https://gitpython.readthedocs.io/en/stable/intro.html)
 
 set envvar `GIT_PYTHON_GIT_EXECUTABLE` to the path of git executable
 
-一个简易的git repo管理类。基于gitpython，可以额外扩展更多的功能。现有的功能有：
+一个简易的git repo管理类。基于gitpython。现有的功能有：
 
 - get latest commit info
 - get file list at specific directory
+
+如果需要用到git repo缓存之类的操作，可以由这个扩展。但需要用异步框架
 
 ## miscs
 
